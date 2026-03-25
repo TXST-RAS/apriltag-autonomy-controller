@@ -1,0 +1,202 @@
+import time
+import serial
+
+#-------------------------
+# MOTOR COMMANDS
+#-------------------------
+
+arm_test = [
+    "L 20000"
+]
+
+beacon_dropoff = [
+    #start
+    "F 2000",
+    "WEST 1",
+    "FTOF 100",
+    "NORTH 1",
+    "F 5000",
+    #"ARM 1", #Beacon Dropoff
+]
+
+rock_pickup = [
+    "FTOF 100",
+    "B 1000",
+    "EAST 1",
+    "F 10000",
+    "NORTH 1",
+    "FTOF 90",
+    "B 400",
+    "EAST 1",
+    "FTOF 100",
+    "SOUTH 1",
+    "F 4500",
+    "EAST 1",
+
+    #enter cave
+    "FTOF 100",
+    "NORTH 1",
+    "FTOF 60",
+    #"B 500",
+    "WEST 1",
+    "RTOF 60",
+    "WEST 1",
+    "FTOF 100",
+    "SOUTH 1",
+    "FTOF 100",
+    "EAST 1",
+    "FTOF 100",
+    "NORTH 1",
+    "F 5000",
+    "WEST 1",
+
+    #exit cave
+    "F 10000",
+    "WEST 1",
+    "FTOF 150",
+    "WEST 1",
+    "B 15000",
+    "SOUTH 1",
+    #"L 1000",
+    "SOUTH 1",
+    "FTOF 75",
+    "B 500",
+    #"R 4000",
+    "WEST 1",
+    "F 2000",
+    "SOUTH 1",
+    "FTOF 75"
+    #end
+]
+
+box1_pickup = [
+    "B 500",
+    "WEST 1",
+    "LTOF 50",
+    "WEST 1",
+    "B 3750",
+    "RS 1"
+]
+
+box2_pickup = [
+    "F 7000",
+    "WEST 1",
+    "F 7000",
+    "NORTH 1",
+    "FTOF 125",
+    "WEST 1",
+    "RTOF 50",
+    "WEST 1",
+    "B 3000",
+    "LS 1"
+]
+
+dropoff_setup1 = [
+    "L 8000",
+    "SOUTH 1",
+    "F 4000"
+]
+
+dropoff_setup2 = [
+    "EAST 1",
+    "B 1000"
+]
+
+#dropoff paths
+dropoff0 = [
+    "NORTH 1",
+    "B 1000",
+    "L 500",
+    "DROP 1"
+]
+
+dropoff1 = [
+    "NORTH 1",
+    "B 500",
+    "L 500",
+    "DROP 1"
+]
+
+dropoff2 = [
+    "NORTH 1",
+    "L 500",
+    "DROP 1"
+]
+
+dropoff3 = [
+    "SOUTH 1",
+    "B 1000",
+    "L 500",
+    "DROP 1"
+]
+
+dropoff4 = [
+    "SOUTH 1",
+    "B 1000",
+    "L 500",
+    "DROP 1"
+]
+
+#Serial Stuff
+SERIAL_PORT = "/dev/ttyACM0"
+BAUD_RATE = 115200
+
+#ROBOT STUFF
+class MegaController:
+    def __init__(self, port="/dev/ttyACM0", baud=115200, read_timeout=0.1):
+        self.ser = serial.Serial(port, baud, timeout=read_timeout)
+        time.sleep(2)
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
+ 
+    def send_and_wait(self, command, timeout=10.0):
+        self.ser.reset_input_buffer()
+        self.ser.write((command.strip() + "\n").encode())
+        self.ser.flush()
+ 
+        start = time.time()
+ 
+        while time.time() - start < timeout:
+            line = self.ser.readline().decode(errors="ignore").strip()
+            if not line:
+                continue
+ 
+            print(f"[Mega] {line}")
+ 
+            if line.lower() == "done":
+                return True
+ 
+        return False
+ 
+    def close(self):
+        self.ser.close()
+
+#Serial commands execution
+def command_execution(commands, robot):
+    for cmd in commands:
+            print(f"Running: {cmd}")
+            success = robot.send_and_wait(cmd, timeout=15.0)
+ 
+            if not success:
+                print(f"Command failed or timed out: {cmd}")
+                break
+ 
+            print(f"Completed: {cmd}\n")
+
+def main():
+    robot = MegaController(SERIAL_PORT, BAUD_RATE)
+    command_execution(arm_test, robot)
+    #command_list = beacon_dropoff
+    #command_execution(command_list, robot)
+
+    #command_list += rock_pickup
+    #command_list += box1_pickup
+    #command_list += box2_pickup
+    #command_list += dropoff_setup1
+    #command_execution(command_list, robot)
+
+#    finally():
+#        robot.close()
+
+if __name__ == "__main__":
+    main() 
